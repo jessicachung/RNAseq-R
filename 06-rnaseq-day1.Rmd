@@ -1,7 +1,7 @@
 ---
 title: "RNA-seq analysis in R"
-author: "Belinda Phipson, Anna Trigos, Matt Ritchie, Maria Doyle, Harriet Dashnow, Charity Law"
-date: "21 November 2016"
+author: "Belinda Phipson, Anna Trigos, Matt Ritchie, Maria Doyle, Harriet Dashnow, Charity Law, Jessica Chung"
+date: "June 2019"
 output: html_document
 minutes: 300
 layout: page
@@ -9,7 +9,7 @@ subtitle: Differential expression analysis
 bibliography: ref.bib
 ---
 
-**Authors: Belinda Phipson, Anna Trigos, Matt Ritchie, Maria Doyle, Harriet Dashnow, Charity Law**
+**Authors: Belinda Phipson, Anna Trigos, Matt Ritchie, Maria Doyle, Harriet Dashnow, Charity Law, Jessica Chung**
 
 ```{r, include=FALSE}
 source("tools/chunk-options.R")
@@ -456,7 +456,6 @@ least_variable_lcpm <- logcounts[select_var,]
 heatmap.2(least_variable_lcpm,col=rev(morecols(50)),trace="none", main="Top 500 least variable genes across samples",ColSideColors=col.cell,labCol=group,scale="row",margins=c(8,5))
 ```
 
-
 -----
 
 ## Normalisation for composition bias
@@ -510,6 +509,50 @@ abline(h=0,col="grey")
 plotMD(y,column = 11)
 abline(h=0,col="grey")
 ```
+
+### RLE plots
+
+Relative log expression (RLE) plots are a tool for visualising unwanted variation in high-dimensional expression data [@Gandolfo2018]. We can assess if normalisation has been successful using RLE plots. 
+
+Let's generate an RLE plot for our log-counts before normalisation and compare it to an RLE plot of counts after normalisation. First we need to calculate the medians for each gene across all samples. Then, for each sample, we calculate the deviation of each gene from the median. Then we plot these deviations in a boxplot for each sample.
+
+When we assess RLE plots, we assume that the majority of genes will be unaffected by the experimental factors of each sample. If the data has been normalised well we expect each boxplot to be centered around zero (i.e. approximately half of the genes in a sample has expression higher than the median, and half of the genes lower than the median). Ideally the boxplots should be symmetrical and also roughtly the same size.
+
+```{r}
+# Calculate the gene medians for the unnormalised log counts
+gene_medians <- apply(logcounts, 1, median)
+
+# Calculate the deviation by subtracting the medians from the log counts
+rle <- sweep(logcounts, 1, STATS=gene_medians, FUN="-")
+
+# Plot the boxplots
+boxplot(rle, outline=FALSE, xlab="", ylab="Relative log expression", las=2)
+abline(h=0, col="red", lty="dotted")
+title("RLE plot (unnormalised)")
+```
+
+Now generate an RLE plot for the normalised data.
+
+```{r}
+# Get normalised log counts
+norm_counts <- cpm(y, normalized.lib.sizes=TRUE, log=TRUE)
+
+# Calculate the gene medians for the normalised log counts
+norm_gene_medians <- apply(norm_counts, 1, median)
+
+# Calculate the deviation by subtracting the medians from the log counts
+norm_rle <- sweep(norm_counts, 1, STATS=norm_gene_medians, FUN="-")
+
+# Plot the boxplots
+boxplot(norm_rle, outline=FALSE, xlab="", ylab="Relative log expression", las=2)
+abline(h=0, col="red", lty="dotted")
+title("RLE plot (normalised)")
+```
+
+We can see that a lot of the unwanted variation has been removed by normalisation.
+
+Note that although poor-looking RLE plots (like the one we generated from the unnormalised data) is good evidence that the data has not been normalised well, good-looking RLE plots (like the one we generated from the normalised data) is only weak evidence that normalisation has been successful.
+
 
 **We need to save a few data objects to use for Day 2 so we don't have to rerun everything**
 
