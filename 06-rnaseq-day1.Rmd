@@ -60,7 +60,7 @@ There are many steps involved in analysing an RNA-Seq experiment. Analysing an R
 
 First, let's load all the packages we will need to analyse the data.
 
-```{r, message = FALSE}
+```{r, message = FALSE, warning=FALSE}
 library(edgeR)
 library(limma)
 library(Glimma)
@@ -518,6 +518,7 @@ gene_medians <- apply(logcounts, 1, median)
 rle <- sweep(logcounts, 1, STATS=gene_medians, FUN="-")
 
 # Plot the boxplots
+par(mfrow=c(1,1))
 boxplot(rle, outline=FALSE, xlab="", ylab="Relative log expression", las=2)
 abline(h=0, col="red", lty="dotted")
 title("RLE plot (unnormalised)")
