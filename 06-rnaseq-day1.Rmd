@@ -939,66 +939,11 @@ H.camera[1:10,]
 ```
 
 
-### ROAST gene set testing
-
-ROAST is an example of a self-contained gene set test [@wu2010roast]. It asks the question, "Do the genes in my set tend to be differentially expressed between my conditions of interest?". ROAST doesn't care about what the other genes in the experiment are doing, which is different to `camera` and `goana`. ROAST is a good option for when you're interested in a specific set, or a few sets. It is not really used to test thousands of sets at one time.
-
-From the Hallmark gene sets, two MYC pathways were most significant.
-
-```{r}
-H.camera[1:10,]
-```
-
-Let's see if there are any MYC signalling pathways in MsigDB C2 collection. We can do this with the `grep` command on the names of the gene sets.
-
-```{r}
-grep("MYC_",names(c2.ind))
-# Let's save these so that we can subset c2.ind to test all gene sets with MYC in the name
-myc <- grep("MYC_",names(c2.ind))
-# What are these pathways called?
-names(c2.ind)[myc]
-```
-
-Let's use ROAST to see if these MYC related gene sets tend to be differentially expressed. Note that the syntax for `camera` and `roast` is almost identical.
-
-```{r}
-myc.rst <- roast(v,index=c2.ind[myc],design=design,contrast=cont.matrix[,1],nrot=999)
-myc.rst[1:15,]
-```
-
-Each row corresponds to a single gene set. The NGenes column gives the number of genes in each set. The PropDown and PropUp columns contain the proportions of genes in the set that are down- and up-regulated, respectively, with absolute fold changes greater than 2. The net direction of change is determined from the significance of changes in each direction, and is shown in the Direction column. The PValue provides evidence for whether the majority of genes in the set are DE in the specified direction, whereas the PValue.Mixed tests for differential expression in any direction. FDRs are computed from the corresponding p-values across all sets.
-
-> ## Challenge {.challenge}
->
-> 1. Test whether the MYC signalling pathways tend to be differentially expressed between luminal pregnant vs lactating (the second contrast).
-> 1. Look for gene sets containing "WNT" in the name and see whether they tend to be differentially expressed in basal pregnant vs lactating.
->
-
-**Solution**
-```{r,echo=FALSE}
-#Solution 1
-myc.rst2 <- roast(v,index=c2.ind[myc],design=design,contrast=cont.matrix[,2],nrot=999)
-myc.rst2[1:15,]
-
-#Solution 2
-wnt <- grep("WNT",names(c2.ind))
-wnt.rst <- roast(v,index=c2.ind[wnt],design=design,contrast=cont.matrix[,1],nrot=999)
-wnt.rst[1:15,]
-```
-
-
-Notes
-
-* A common application of ROAST is to use a set of DE genes that was defined from an analysis of an independent data set. ROAST can then determine whether similar changes are observed in the contrast of interest for the current data set.
-* Even for GO-defined gene sets, goana and ROAST have different behaviours. In goana, the significance of differential expression for a GO term is determined relative to other DE genes that are not annotated with that term. In ROAST, only differential expression for the genes in the set are relevant to the significance of that set and its corresponding term. goana depends on a significance cutoff to choose DE genes, whereas ROAST does not require a cutoff and evaluates all genes in the set.
-* ROAST estimates p-values by simulation, so the results may change slightly between runs. More precise p-values can be obtained by increasing the number of rotations, albeit at the cost of increased computational time.
-* The smallest p-value that can be reported is 1/(2nrot + 1) where nrot is the number of rotations. This lower bound can be decreased by increasing nrot.
-
 ### Visualising gene set tests: Barcode and enrichment plots
 
 A barcode plot can be produced with the `barcodeplot` function to visualize the results for any particular set. To display a barcodeplot, we need to decide what statistics to use, usually we choose either logFC or t-statistics for the comparison of interest. We also need to make sure we give the statistics in the correct order, such that subsetting the statistics vector will give the genes for the gene set we're interested in. The best way to do this is to work with the fit object directly. The `coefficients` slot contains the logFCs and the `t` slot contains the t-statistics.
 
-Let's have a look at one of the top MYC related pathway in the ROAST test that you have already done, "MENSSEN_MYC_TARGETS".
+Let's have a look at the top pathway in the CAMERA test that you did previously with the Hallmark gene sets, "HALLMARK_MYC_TARGETS_V2".
 
 ```{r}
 # Have a look at the logFCs and t-statistics in fit.cont
@@ -1008,9 +953,9 @@ head(fit.cont$t)
 
 par(mfrow=c(1,1))
 # barcode plot with logFCs
-barcodeplot(fit.cont$coeff[,1], index=c2.ind[["MENSSEN_MYC_TARGETS"]], main="LogFC: MENSSEN_MYC_TARGETS")
+barcodeplot(fit.cont$coeff[,1], index=H.ind[["HALLMARK_MYC_TARGETS_V2"]], main="LogFC: HALLMARK_MYC_TARGETS_V2")
 # barcode plot using t-statistics
-barcodeplot(fit.cont$t[,1], index=c2.ind[["MENSSEN_MYC_TARGETS"]], main="T-statistic: MENSSEN_MYC_TARGETS")
+barcodeplot(fit.cont$t[,1], index=H.ind[["HALLMARK_MYC_TARGETS_V2"]], main="T-statistic: HALLMARK_MYC_TARGETS_V2")
 ```
 
 Here, genes are represented by bars and are ranked from left to right by decreasing log-fold change or t-statistic. This forms the barcode-like pattern. The line above the barcode shows the relative local enrichment of the vertical bars in each part of the plot. The barcodeplot shows that the genes in this gene set tend to be up-regulated between pregnant and lactating in basal cells.
@@ -1018,18 +963,14 @@ Here, genes are represented by bars and are ranked from left to right by decreas
 > ## Challenge {.challenge}
 >
 > 1. Produce a barcodeplot for luminal pregnant vs lactating for this gene set. Does the pattern of enrichment look as strong?
-> 1. Choose one of the Wnt signalling pathways and produce a barcode plot for both comparisons.
-> 1. You can put two gene sets on one plot, for example a set that is up-regulated and one that is down-regulated,
-> by adding a gene set to the `index2` argument. Produce a barcodeplot with two sets of your choosing.
+> 1. Try producing a barcode plot with two gene sets on one plot. For example, gene sets "LABBE_WNT3A_TARGETS_UP" (Up-regulated genes in mammary epithelium after stimulation with WNT3A) and "LABBE_WNT3A_TARGETS_DN" (Down-regulated genes in mammary epithelium after stimulation with WNT3A). You can put two gene sets on one plot by adding a gene set to the `index2` argument.
 >
 
 **Solution**
 ```{r,echo=FALSE}
 # Solution 1
-barcodeplot(fit.cont$coeff[,2], index=c2.ind[["MENSSEN_MYC_TARGETS"]], main="L.PregVsLac: MENSSEN_MYC_TARGETS")
+barcodeplot(fit.cont$coeff[,2], index=H.ind[["HALLMARK_MYC_TARGETS_V2"]], main="L.PregVsLac: HALLMARK_MYC_TARGETS_V2")
 # Solution 2
-barcodeplot(fit.cont$coeff[,2], index=c2.ind[["LABBE_WNT3A_TARGETS_UP"]], main="L.PregVsLac: LABBE_WNT3A_TARGETS_UP")
-# Solution 3
 barcodeplot(fit.cont$coeff[,2], index=c2.ind[["LABBE_WNT3A_TARGETS_UP"]], index2=c2.ind[["LABBE_WNT3A_TARGETS_DN"]], main="L.PregVsLac: LABBE_WNT3A_TARGETS UP and DN sets")
 ```
 
